@@ -336,5 +336,27 @@ class BuildLlmMetadataStartTokenTest(parameterized.TestCase):
     self.assertIn('message["content"]', metadata.jinja_prompt_template)
 
 
+class BuildLlmMetadataStopTokensTest(parameterized.TestCase):
+
+  def test_stop_tokens_are_written_in_stable_order(self):
+    tokenizer = _FakeTokenizer(
+        bos_token=None, bos_token_id=None, prepends_bos=False
+    )
+    chat_templates = ((None, None), (None, None), (None, "<stop>"))
+    generation_config = types.SimpleNamespace(eos_token_id=[17, 5])
+    with mock.patch.object(_FakeModel, "generation_config", generation_config):
+      metadata = _build_llm_metadata(tokenizer, chat_templates=chat_templates)
+
+    stop_tokens = []
+    for stop_token in metadata.stop_tokens:
+      if stop_token.HasField("token_ids"):
+        stop_tokens.extend(stop_token.token_ids.ids)
+      else:
+        stop_tokens.append(stop_token.token_str)
+
+    self.assertEqual(stop_tokens[:2], [5, 17])
+    self.assertEqual(stop_tokens[2:], sorted(stop_tokens[2:]))
+
+
 if __name__ == "__main__":
   absltest.main()

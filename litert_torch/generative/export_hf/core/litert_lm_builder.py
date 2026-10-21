@@ -48,6 +48,11 @@ _STOP_TOKEN_PREFIXES = [
 ]
 
 
+def _stop_token_sort_key(stop_token: int | str) -> tuple[bool, str]:
+  """Returns a stable key for stop tokens of either supported type."""
+  return isinstance(stop_token, str), str(stop_token)
+
+
 def parse_chat_template(tokenizer):
   """Parses chat template."""
   if tokenizer.chat_template is None:
@@ -254,7 +259,7 @@ def build_llm_metadata(
     else:
       expanded_stop_tokens.add(stop_token)
 
-  for stop_token in expanded_stop_tokens:
+  for stop_token in sorted(expanded_stop_tokens, key=_stop_token_sort_key):
     if isinstance(stop_token, int):
       tu = llm_metadata.stop_tokens.add()
       tu.token_ids.ids.append(stop_token)
