@@ -48,9 +48,9 @@ _STOP_TOKEN_PREFIXES = [
 ]
 
 
-def _stop_token_sort_key(stop_token: int | str) -> tuple[bool, str]:
+def _stop_token_sort_key(stop_token: int | str) -> tuple[bool, int | str]:
   """Returns a stable key for stop tokens of either supported type."""
-  return isinstance(stop_token, str), str(stop_token)
+  return isinstance(stop_token, str), stop_token
 
 
 def parse_chat_template(tokenizer):
@@ -673,3 +673,4 @@ def package_model(
       exported_model_artifacts,
       litert_lm_model_path=model_path,
   )
+
