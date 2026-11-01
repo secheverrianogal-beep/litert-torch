@@ -15,7 +15,7 @@ FORK_REPO = "secheverrianogal-beep/litert-torch"
 
 def job_block(workflow: str, job_name: str) -> str:
     match = re.search(
-        rf"(?ms)^  {re.escape(job_name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\\Z)",
+        rf"(?ms)^  {re.escape(job_name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
         workflow,
     )
     if not match:
@@ -40,7 +40,7 @@ class ReleaseWorkflowGuardTest(unittest.TestCase):
         self.assertIn("TWINE_USERNAME: __token__", job)
         self.assertIn("TWINE_PASSWORD: ${{ secrets.PYPI_UPLOAD_TOKEN }}", job)
         self.assertIn("run: twine upload dist/* --non-interactive", job)
-        self.assertNotRegex(job, r"(?m)^\\s*run:.*twine upload.* -p ")
+        self.assertNotRegex(job, r"(?m)^\s*run:.*twine upload.* -p ")
 
     def test_stable_publisher_requires_upstream_and_explicit_publish(self):
         job = job_block(self.stable, "publish-stable")
@@ -48,7 +48,7 @@ class ReleaseWorkflowGuardTest(unittest.TestCase):
             f"if: success() && github.repository == '{UPSTREAM_REPO}' && inputs.dry_run == false",
             job,
         )
-        self.assertRegex(job, r"(?m)^    permissions: \\{\\}$")
+        self.assertRegex(job, r"(?m)^    permissions: \{\}$")
         self.assertIn("TWINE_PASSWORD: ${{ secrets.PYPI_UPLOAD_TOKEN }}", job)
         self.assertRegex(self.stable, r"(?m)^permissions:\n  contents: read$")
         self.assertIn("persist-credentials: false", self.stable)
