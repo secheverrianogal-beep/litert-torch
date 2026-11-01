@@ -3,6 +3,9 @@
 
 name: Build and Release (stable)
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:  # Allow manual triggers for stable releases
     inputs:
@@ -25,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -90,7 +95,8 @@ jobs:
   publish-stable:
     name: Publish to PyPI
     needs: test-before-publish
-    if: success() && inputs.dry_run == false
+    if: success() && github.repository == 'google-ai-edge/litert-torch' && inputs.dry_run == false
+    permissions: {}
     runs-on: ubuntu-latest
     steps:
       - name: Download Stable Wheel
