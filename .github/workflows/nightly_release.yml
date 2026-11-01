@@ -3,6 +3,9 @@
 
 name: Build and Release (nightly)
 
+permissions:
+  contents: read
+
 on:
   schedule:
     # 10 am UTC is 3am or 4am PT depending on daylight savings.
@@ -24,12 +27,15 @@ jobs:
       run-on-macos: false
 
   build-and-release-nightly:
+    if: github.repository == 'google-ai-edge/litert-torch'
     needs: run-unittests-python
     runs-on: ubuntu-latest
 
     name: Build and Release litert-torch-nightly
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Get and set nightly date
         id: date
@@ -60,7 +66,10 @@ jobs:
         run: python -m zipfile --list dist/*.whl
 
       - name: Upload to PyPI
-        run: twine upload dist/* --non-interactive -p ${{ secrets.PYPI_UPLOAD_TOKEN }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_UPLOAD_TOKEN }}
+        run: twine upload dist/* --non-interactive
 
   run-pip-install-and-import-test:
     needs: build-and-release-nightly
