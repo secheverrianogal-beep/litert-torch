@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 UPSTREAM_REPO = "google-ai-edge/litert-torch"
 FORK_REPO = "secheverrianogal-beep/litert-torch"
+APPROVED_RELEASE_REF = "refs/heads/main"
 
 
 def job_block(workflow: str, job_name: str) -> str:
@@ -31,7 +32,11 @@ class ReleaseWorkflowGuardTest(unittest.TestCase):
 
     def test_nightly_publisher_is_restricted_to_upstream(self):
         job = job_block(self.nightly, "build-and-release-nightly")
-        self.assertIn(f"if: github.repository == '{UPSTREAM_REPO}'", job)
+        self.assertIn(
+            f"if: github.repository == '{UPSTREAM_REPO}' && "
+            f"github.ref == '{APPROVED_RELEASE_REF}'",
+            job,
+        )
         self.assertRegex(self.nightly, r"(?m)^permissions:\n  contents: read$")
         self.assertIn("persist-credentials: false", job)
 
@@ -45,7 +50,8 @@ class ReleaseWorkflowGuardTest(unittest.TestCase):
     def test_stable_publisher_requires_upstream_and_explicit_publish(self):
         job = job_block(self.stable, "publish-stable")
         self.assertIn(
-            f"if: success() && github.repository == '{UPSTREAM_REPO}' && inputs.dry_run == false",
+            f"if: success() && github.repository == '{UPSTREAM_REPO}' && "
+            f"github.ref == '{APPROVED_RELEASE_REF}' && inputs.dry_run == false",
             job,
         )
         self.assertRegex(job, r"(?m)^    permissions: \{\}$")
@@ -54,29 +60,35 @@ class ReleaseWorkflowGuardTest(unittest.TestCase):
         self.assertIn("persist-credentials: false", self.stable)
 
     def test_nightly_decision_matrix(self):
-        # The job-level expression intentionally ignores event type and requires
-        # repository identity, so manual dispatches in forks remain blocked.
         cases = [
-            (FORK_REPO, "workflow_dispatch", False),
-            (FORK_REPO, "schedule", False),
-            (UPSTREAM_REPO, "workflow_dispatch", True),
-            (UPSTREAM_REPO, "schedule", True),
+            (FORK_REPO, APPROVED_RELEASE_REF, "workflow_dispatch", False),
+            (UPSTREAM_REPO, "refs/heads/feature", "workflow_dispatch", False),
+            (UPSTREAM_REPO, APPROVED_RELEASE_REF, "workflow_dispatch", True),
+            (UPSTREAM_REPO, APPROVED_RELEASE_REF, "schedule", True),
+            (UPSTREAM_REPO, "refs/heads/feature", "schedule", False),
         ]
-        for repository, event_name, expected in cases:
-            with self.subTest(repository=repository, event=event_name):
-                self.assertEqual(repository == UPSTREAM_REPO, expected)
+        for repository, ref, event_name, expected in cases:
+            with self.subTest(repository=repository, ref=ref, event=event_name):
+                self.assertEqual(
+                    repository == UPSTREAM_REPO and ref == APPROVED_RELEASE_REF,
+                    expected,
+                )
 
     def test_stable_decision_matrix(self):
         cases = [
-            (FORK_REPO, True, False),
-            (FORK_REPO, False, False),
-            (UPSTREAM_REPO, True, False),
-            (UPSTREAM_REPO, False, True),
+            (FORK_REPO, APPROVED_RELEASE_REF, True, False),
+            (FORK_REPO, APPROVED_RELEASE_REF, False, False),
+            (UPSTREAM_REPO, "refs/heads/feature", False, False),
+            (UPSTREAM_REPO, APPROVED_RELEASE_REF, True, False),
+            (UPSTREAM_REPO, APPROVED_RELEASE_REF, False, True),
         ]
-        for repository, dry_run, expected in cases:
-            with self.subTest(repository=repository, dry_run=dry_run):
+        for repository, ref, dry_run, expected in cases:
+            with self.subTest(repository=repository, ref=ref, dry_run=dry_run):
                 self.assertEqual(
-                    repository == UPSTREAM_REPO and not dry_run, expected
+                    repository == UPSTREAM_REPO
+                    and ref == APPROVED_RELEASE_REF
+                    and not dry_run,
+                    expected,
                 )
 
 

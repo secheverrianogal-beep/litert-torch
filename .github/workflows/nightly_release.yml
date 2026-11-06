@@ -27,7 +27,7 @@ jobs:
       run-on-macos: false
 
   build-and-release-nightly:
-    if: github.repository == 'google-ai-edge/litert-torch'
+    if: github.repository == 'google-ai-edge/litert-torch' && github.ref == 'refs/heads/main'
     needs: run-unittests-python
     runs-on: ubuntu-latest
 

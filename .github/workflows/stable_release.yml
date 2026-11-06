@@ -95,7 +95,7 @@ jobs:
   publish-stable:
     name: Publish to PyPI
     needs: test-before-publish
-    if: success() && github.repository == 'google-ai-edge/litert-torch' && inputs.dry_run == false
+    if: success() && github.repository == 'google-ai-edge/litert-torch' && github.ref == 'refs/heads/main' && inputs.dry_run == false
     permissions: {}
     runs-on: ubuntu-latest
     steps:
